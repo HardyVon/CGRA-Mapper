@@ -38,7 +38,7 @@ class DFG {
     bool m_precisionAware;
     list<DFGNode*>* m_orderedNodes;
     list<Loop*>* m_targetLoops;
-    list<BasicBlock*> m_targetBBs;
+//    list<BasicBlock*> m_targetBBs;
     int m_vectorFactorForIdiv;
 
     //edges of data flow

@@ -16,7 +16,7 @@ jobs:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v3
@@ -26,6 +26,15 @@ jobs:
       with:
         version: 12
         platform: x64
+
+    # - name: Install LLVM tools (including llvm-symbolizer)
+    #   run: |
+    #     sudo apt-get update && sudo apt-get install -y llvm-14
+    #     which llvm-symbolizer || echo "llvm-symbolizer not found"
+    #     which clang-14 || echo "clang-14 not found"
+  
+    # - name: Export llvm-symbolizer path
+    #   run: echo "LLVM_SYMBOLIZER_PATH=/usr/lib/llvm-14/bin/llvm-symbolizer" >> $GITHUB_ENV
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
@@ -39,33 +48,35 @@ jobs:
 
     # Testing.
     - name: Test fusion via Nonlinear kernel
-      continue-on-error: true
-      working-directory: ${{github.workspace}}/test/nonlinear
+      working-directory: ${{github.workspace}}/tools/nonlinear
       run: |
-        clang-12 -emit-llvm -O3 -fno-unroll-loops -fno-vectorize -o nonlinear_test.bc -c nonlinear_test.cpp
-        sed -i 's/\("testingOpcodeOffset"[[:space:]]*:[[:space:]]*\)0,/\12,/' param.json
-        opt-12 -load ../../build/src/libmapperPass.so -mapperPass nonlinear_test.bc
+        sh compile.sh
+        sh run.sh
         sh verify.sh
 
     - name: Test split via Idiv kernel
-      continue-on-error: true
-      working-directory: ${{github.workspace}}/test/idiv
+      working-directory: ${{github.workspace}}/tools/idiv
       run: |
-        clang-12 -emit-llvm -O3 -fno-unroll-loops -fno-vectorize -o idiv_test.bc -c idiv_test.cpp
-        sed -i 's/\("testingOpcodeOffset"[[:space:]]*:[[:space:]]*\)0,/\12,/' param.json
-        opt-12 -load ../../build/src/libmapperPass.so -mapperPass idiv_test.bc
+        sh compile.sh
+        sh run.sh
         sh verify.sh
 
     - name: Test DVFS
-      continue-on-error: true
-      working-directory: ${{github.workspace}}/test/dvfs
+      working-directory: ${{github.workspace}}/tools/dvfs
       run: |
-        clang-12 -emit-llvm -O3 -fno-unroll-loops -fno-vectorize -o kernel.bc -c kernel.cpp
-        opt-12 -load ../../build/src/libmapperPass.so -mapperPass kernel.bc > trace.log
+        sh compile.sh
+        sh run.sh
         sh verify.sh
 
     - name: Test inter edges
-      working-directory: ${{github.workspace}}/test/inter_edge
+      working-directory: ${{github.workspace}}/tools/inter_edge
+      run: |
+        sh compile.sh
+        sh run.sh
+        sh verify.sh
+
+    - name: Test expandable mapping
+      working-directory: ${{github.workspace}}/tools/expandable
       run: |
         sh compile.sh
         sh run.sh
